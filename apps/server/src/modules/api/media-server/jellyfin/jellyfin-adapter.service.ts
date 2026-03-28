@@ -331,27 +331,25 @@ export class JellyfinAdapterService implements IMediaServerService {
   }
 
   private isCompletedWatch(
-    userData:
-      | {
-          Played?: boolean | null;
-          PlayedPercentage?: number | null;
-        }
-      | undefined,
+    userData: UserItemDataDto | undefined,
     playedCompletionThreshold?: number,
   ): boolean {
     if (!userData) return false;
 
+    // Manual mark or auto-marked by Jellyfin
+    if (userData.Played) {
+      return true;
+    }
+
+    // Check threshold for items not yet marked as Played by Jellyfin
     if (
       playedCompletionThreshold !== undefined &&
       typeof userData.PlayedPercentage === 'number'
     ) {
-      return (
-        userData.Played === true ||
-        userData.PlayedPercentage >= playedCompletionThreshold
-      );
+      return userData.PlayedPercentage >= playedCompletionThreshold;
     }
 
-    return userData.Played === true;
+    return false;
   }
 
   async getUser(id: string): Promise<MediaUser | undefined> {
@@ -532,6 +530,7 @@ export class JellyfinAdapterService implements IMediaServerService {
           ItemFields.Tags,
           ItemFields.Overview,
           ItemFields.People,
+          ItemFields.UserData,
         ],
         enableUserData: true,
       });
@@ -823,6 +822,7 @@ export class JellyfinAdapterService implements IMediaServerService {
         userId,
         ids: [itemId],
         enableUserData: true,
+        fields: [ItemFields.UserData],
       });
       return response.data.Items?.[0]?.UserData;
     } catch (error) {
